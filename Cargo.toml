@@ -1,0 +1,17 @@
+[package]
+name = "weirdboi_posthog"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+ehttp = { version = "0.5", features = ["native-async"] }
+url = "2.5"
+fastrand = "2"
+serde = "1"
+serde_json = "1"
+log = "0.4"
+
+bevy_ecs = "0.17"
+bevy_time = "0.17"
+bevy_tasks = "0.17"
+bevy_app = "0.17"
