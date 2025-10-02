@@ -1,7 +1,14 @@
 [package]
 name = "weirdboi_posthog"
 version = "0.1.0"
-edition = "2024"
+edition = "2021"
+authors = [
+    "Louis Capitanchik <louis@weirdboi.com>"
+]
+license = "Apache-2.0"
+description = "PostHog analytics integration for Bevy"
+repository = "https://github.com/Commander-lol/weirdboi_posthog.git"
+homepage = "https://github.com/Commander-lol/weirdboi_posthog"
 
 [dependencies]
 ehttp = { version = "0.5", features = ["native-async"] }
