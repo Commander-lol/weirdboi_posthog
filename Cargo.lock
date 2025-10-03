@@ -1452,8 +1452,8 @@ dependencies = [
  "ehttp",
  "fastrand",
  "log",
- "serde",
  "serde_json",
+ "thiserror",
  "url",
 ]
 

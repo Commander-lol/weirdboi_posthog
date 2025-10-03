@@ -3,15 +3,25 @@ use serde_json::Value;
 use std::collections::HashMap;
 use std::env;
 use std::fmt::{Display, Formatter};
+use std::sync::{Arc, Mutex, OnceLock};
 use url::Url;
 
-#[derive(Resource)]
+#[derive(Resource, Clone, Debug)]
 pub struct PosthogConfig {
 	enabled: bool,
 	api_key: String,
 	current_user: u128,
 	pub api_host: Url,
 	pub default_properties: HashMap<String, Value>,
+}
+
+pub static GLOBAL_CONFIG: OnceLock<Arc<Mutex<PosthogConfig>>> = OnceLock::new();
+pub fn get_global_config() -> &'static Arc<Mutex<PosthogConfig>> {
+	GLOBAL_CONFIG.get_or_init(|| {
+		Arc::new(Mutex::new(PosthogConfig::from_dynamic_env().expect(
+			"Failed to initialise PosthogConfig from environment variables",
+		)))
+	})
 }
 
 #[derive(Debug)]
@@ -34,13 +44,34 @@ impl Display for ConfigError {
 impl std::error::Error for ConfigError {}
 
 impl PosthogConfig {
-	pub fn from_env() -> Result<Self, ConfigError> {
+	pub fn from_dynamic_env() -> Result<Self, ConfigError> {
 		let api_host = env::var("POSTHOG_HOST")
 			.map_err(|_| ConfigError::MissingEnvironment("POSTHOG_HOST".to_string()))?;
 		let api_key = env::var("POSTHOG_KEY")
 			.map_err(|_| ConfigError::MissingEnvironment("POSTHOG_KEY".to_string()))?;
 
 		Self::new(api_host.as_str(), api_key)
+	}
+
+    pub fn from_env() -> Result<Self, ConfigError> {
+        let build_api_host = option_env!("POSTHOG_HOST");
+        let build_api_key = option_env!("POSTHOG_KEY");
+
+        if let (Some(api_host), Some(api_key)) = (build_api_host, build_api_key) {
+            return Self::new(api_host, api_key);
+        }
+
+        Self::from_dynamic_env()
+    }
+
+	/// Set this config instance as the global config. The global config is used when interacting
+	/// with the PostHog outside Bevy ECS
+	pub fn install(&self) {
+		if let Err(_) = GLOBAL_CONFIG.set(Arc::new(Mutex::new(self.clone()))) {
+			*get_global_config()
+				.lock()
+				.expect("Global config lock is poisoned") = self.clone();
+		}
 	}
 
 	pub fn new(api_host: impl TryInto<Url>, api_key: impl Display) -> Result<Self, ConfigError> {
